@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alford AI Writing Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(to bottom right, #f8fafc, #e2e8f0);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+        }
+
+        h1 {
+            font-size: 30px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 192px;
+            padding: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            margin-bottom: 24px;
+        }
+
+        .word-count {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        button {
+            padding: 8px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 24px;
+        }
+
+        .result-card {
+            background: linear-gradient(to right, #dbeafe, #e0e7ff);
+            border: 2px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .result-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .score {
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .score.green { color: #16a34a; }
+        .score.yellow { color: #ca8a04; }
+        .score.red { color: #dc2626; }
+
+        .progress-bar {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.green { background: #22c55e; }
+        .progress-fill.yellow { background: #eab308; }
+        .progress-fill.red { background: #ef4444; }
+
+        .result-label {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .result-description {
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .indicator {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .indicator-content {
+            flex: 1;
+        }
+
+        .indicator-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .indicator-name {
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .badge.high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.low {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .warning {
+            background: #fefce8;
+            border: 1px solid #fde047;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .warning-text {
+            font-size: 14px;
+            color: #854d0e;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Alford AI Writing Detector</h1>
+            <p class="subtitle">Analyze text for AI-generated content indicators</p>
+            
+            <div>
+                <label>Enter text to analyze (minimum 50 words recommended)</label>
+                <textarea id="textInput" placeholder="Paste or type the text you want to analyze..."></textarea>
+                <div class="controls">
+                    <span class="word-count" id="wordCount">0 words</span>
+                    <button id="analyzeBtn" onclick="analyzeText()">Analyze Text</button>
+                </div>
+            </div>
+
+            <div id="results" class="results hidden">
+                <div class="result-card">
+                    <div class="result-header">
+                        <h2 class="result-title">Detection Results</h2>
+                        <div class="score" id="scoreDisplay">0%</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <p class="result-label" id="resultLabel"></p>
+                    <p class="result-description" id="resultDescription"></p>
+                </div>
+
+                <div>
+                    <h3 class="section-title">Key Indicators</h3>
+                    <div id="indicators"></div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid"></div>
+
+                <div class="warning">
+                    <p class="warning-text">
+                        <strong>Note:</strong> This is a basic detection tool for educational purposes. Professional AI detectors use advanced ML models and larger datasets. Results should be interpreted carefully and not used as definitive proof.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('textInput');
+        const wordCount = document.getElementById('wordCount');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const results = document.getElementById('results');
+
+        textInput.addEventListener('input', function() {
+            const words = this.value.split(/\s+/).filter(w => w.length > 0);
+            wordCount.textContent = words.length + ' words';
+            analyzeBtn.disabled = words.length < 10;
+        });
+
+        function analyzeText() {
+            const text = textInput.value;
+            if (!text.trim()) return;
+
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+            
+            // Feature 1: Lexical diversity
+            const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+            const lexicalDiversity = uniqueWords.size / words.length;
+            
+            // Feature 2: Sentence length consistency
+            const sentenceLengths = sentences.map(s => s.trim().split(/\s+/).length);
+            const avgSentenceLength = sentenceLengths.reduce((a, b) => a + b, 0) / sentenceLengths.length;
+            const sentenceLengthVariance = sentenceLengths.reduce((sum, len) => 
+                sum + Math.pow(len - avgSentenceLength, 2), 0) / sentenceLengths.length;
+            const sentenceLengthStdDev = Math.sqrt(sentenceLengthVariance);
+            
+            // Feature 3: Repetitive phrase patterns
+            const bigramFrequency = {};
+            for (let i = 0; i < words.length - 1; i++) {
+                const bigram = `${words[i].toLowerCase()} ${words[i + 1].toLowerCase()}`;
+                bigramFrequency[bigram] = (bigramFrequency[bigram] || 0) + 1;
+            }
+            const maxBigramFreq = Math.max(...Object.values(bigramFrequency));
+            const repetitionScore = maxBigramFreq / words.length;
+            
+            // Feature 4: Common AI transition words
+            const aiTransitions = [
+                'however', 'moreover', 'furthermore', 'additionally', 'consequently',
+                'nevertheless', 'therefore', 'thus', 'hence', 'indeed', 'notably',
+                'significantly', 'importantly', 'essentially', 'ultimately'
+            ];
+            const transitionCount = words.filter(w => 
+                aiTransitions.includes(w.toLowerCase().replace(/[.,!?;:]/, ''))
+            ).length;
+            const transitionDensity = transitionCount / words.length;
+            
+            // Feature 5: Punctuation patterns
+            const punctuation = text.match(/[,;:]/g) || [];
+            const punctuationDensity = punctuation.length / words.length;
+            
+            // Feature 6: Passive voice detection
+            const passiveIndicators = ['was', 'were', 'been', 'being', 'is', 'are', 'am'];
+            const pastParticiples = text.match(/\b\w+ed\b/g) || [];
+            let passiveCount = 0;
+            words.forEach((word, i) => {
+                if (passiveIndicators.includes(word.toLowerCase()) && 
+                    i < words.length - 1 && 
+                    pastParticiples.includes(words[i + 1].toLowerCase())) {
+                    passiveCount++;
+                }
+            });
+            const passiveDensity = passiveCount / sentences.length;
+            
+            // Feature 7: Contractions
+            const contractions = text.match(/n't|'re|'ve|'ll|'d|'m/g) || [];
+            const contractionRate = contractions.length / sentences.length;
+            
+            // Scoring system
+            let aiScore = 0;
+            let indicators = [];
+            
+            if (lexicalDiversity < 0.4) {
+                aiScore += 20;
+                indicators.push({ name: 'Low vocabulary diversity', weight: 'high', aiLikely: true });
+            } else if (lexicalDiversity > 0.6) {
+                aiScore -= 10;
+                indicators.push({ name: 'High vocabulary diversity', weight: 'medium', aiLikely: false });
+            }
+            
+            if (sentenceLengthStdDev < 5 && sentences.length > 3) {
+                aiScore += 25;
+                indicators.push({ name: 'Uniform sentence lengths', weight: 'high', aiLikely: true });
+            } else if (sentenceLengthStdDev > 10) {
+                aiScore -= 10;
+                indicators.push({ name: 'Varied sentence structure', weight: 'medium', aiLikely: false });
+            }
+            
+            if (transitionDensity > 0.03) {
+                aiScore += 15;
+                indicators.push({ name: 'Frequent formal transitions', weight: 'medium', aiLikely: true });
+            }
+            
+            if (repetitionScore > 0.02) {
+                aiScore += 10;
+                indicators.push({ name: 'Repetitive phrasing', weight: 'low', aiLikely: true });
+            }
+            
+            if (punctuationDensity > 0.15 && punctuationDensity < 0.25) {
+                aiScore += 10;
+                indicators.push({ name: 'Balanced punctuation', weight: 'low', aiLikely: true });
+            }
+            
+            if (passiveDensity > 0.3) {
+                aiScore += 10;
+                indicators.push({ name: 'Frequent passive voice', weight: 'medium', aiLikely: true });
+            }
+            
+            if (contractionRate < 0.1 && sentences.length > 5) {
+                aiScore += 15;
+                indicators.push({ name: 'Minimal contractions (formal)', weight: 'medium', aiLikely: true });
+            } else if (contractionRate > 0.5) {
+                aiScore -= 10;
+                indicators.push({ name: 'Natural contraction usage', weight: 'medium', aiLikely: false });
+            }
+            
+            const finalScore = Math.max(0, Math.min(100, aiScore + 30));
+            
+            displayResults({
+                score: finalScore,
+                indicators,
+                stats: {
+                    wordCount: words.length,
+                    sentenceCount: sentences.length,
+                    avgSentenceLength: avgSentenceLength.toFixed(1),
+                    lexicalDiversity: (lexicalDiversity * 100).toFixed(1),
+                    transitionDensity: (transitionDensity * 100).toFixed(2)
+                }
+            });
+        }
+
+        function displayResults(data) {
+            results.classList.remove('hidden');
+            
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            const progressBar = document.getElementById('progressBar');
+            const resultLabel = document.getElementById('resultLabel');
+            const resultDescription = document.getElementById('resultDescription');
+            
+            const colorClass = data.score < 30 ? 'green' : data.score < 60 ? 'yellow' : 'red';
+            const label = data.score < 30 ? 'Likely Human' : data.score < 60 ? 'Uncertain' : 'Likely AI';
+            const description = data.score < 30 
+                ? 'This text shows natural human writing patterns.'
+                : data.score < 60 
+                ? 'This text has mixed characteristics. Further analysis recommended.'
+                : 'This text exhibits multiple AI writing patterns.';
+            
+            scoreDisplay.textContent = Math.round(data.score) + '%';
+            scoreDisplay.className = 'score ' + colorClass;
+            
+            progressBar.style.width = data.score + '%';
+            progressBar.className = 'progress-fill ' + colorClass;
+            
+            resultLabel.textContent = label;
+            resultLabel.className = 'result-label ' + colorClass;
+            
+            resultDescription.textContent = description;
+            
+            // Display indicators
+            const indicatorsDiv = document.getElementById('indicators');
+            indicatorsDiv.innerHTML = data.indicators.map(ind => `
+                <div class="indicator">
+                    <div class="icon">
+                        ${ind.aiLikely 
+                            ? '<svg fill="none" stroke="#f97316" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+                            : '<svg fill="none" stroke="#22c55e" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+                        }
+                    </div>
+                    <div class="indicator-content">
+                        <div class="indicator-header">
+                            <span class="indicator-name">${ind.name}</span>
+                            <span class="badge ${ind.weight}">${ind.weight.charAt(0).toUpperCase() + ind.weight.slice(1)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Display stats
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Word Count</div>
+                    <div class="stat-value">${data.stats.wordCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Sentences</div>
+                    <div class="stat-value">${data.stats.sentenceCount}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Sentence Length</div>
+                    <div class="stat-value">${data.stats.avgSentenceLength}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Vocabulary Diversity</div>
+                    <div class="stat-value">${data.stats.lexicalDiversity}%</div>
+                </div>
+                <div class="stat-card" style="grid-column: span 2;">
+                    <div class="stat-label">Transition Word Density</div>
+                    <div class="stat-value">${data.stats.transitionDensity}%</div>
+                </div>
+            `;
+            
+            results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
